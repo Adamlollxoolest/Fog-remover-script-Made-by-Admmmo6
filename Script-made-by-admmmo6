@@ -2,30 +2,46 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
--- Continuous zero-delay cleanup loop running every frame
+-- Infinite zero-delay loop running every frame
 RunService.Heartbeat:Connect(function()
-    -- 1. Force Lighting properties to maximum clarity
-    Lighting.FogEnd = 9e9
-    Lighting.FogStart = 0
-    
-    -- 2. Instantly wipe out any atmosphere or post-processing visual clutter in Lighting
+    -- 1. Clear out traditional lighting fog parameters
+    pcall(function()
+        Lighting.FogEnd = 9e9
+        Lighting.FogStart = 0
+    end)
+
+    -- 2. Completely wipe out Atmosphere objects, haze, and post-processing effects
     for _, child in ipairs(Lighting:GetChildren()) do
-        if child:IsA("Atmosphere") or child:IsA("PostEffect") or child:IsA("BlurEffect") or child:IsA("SunRaysEffect") then
+        if child:IsA("Atmosphere") or child:IsA("PostEffect") or child:IsA("BlurEffect") or child:IsA("SunRaysEffect") or child:IsA("BloomEffect") then
             child:Destroy()
+        elseif child:IsA("Atmosphere") then
+            -- Set density to 0 just in case it resists destruction
+            child.Density = 0
+            child.Haze = 0
         end
     end
-    
-    -- 3. Instantly destroy any parts, folders, or models acting as fog triggers/zones
+
+    -- 3. Scan workspace for environmental fog containers, particle emitters, or zone triggers
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Atmosphere") then
             obj:Destroy()
+        elseif obj:IsA("ParticleEmitter") then
+            -- Catch heavy mist/smoke particle effects used as fake fog
+            local name = string.lower(obj.Name)
+            if string.find(name, "fog") or string.find(name, "mist") or string.find(name, "smoke") or string.find(name, "dust") then
+                obj.Enabled = false
+            end
         elseif obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("Folder") then
             local name = string.lower(obj.Name)
-            if string.find(name, "fog") or string.find(name, "mist") or string.find(name, "weather") or string.find(name, "smoke") or string.find(name, "hazard") then
-                obj:Destroy()
+            if string.find(name, "fog") or string.find(name, "mist") or string.find(name, "weather") or string.find(name, "hazard") or string.find(name, "zone") then
+                -- Check if it acts as a blocking or blinding visual region
+                if obj:IsA("BasePart") then
+                    obj.Transparency = 1
+                    obj.CanCollide = false
+                else
+                    obj:Destroy()
+                end
             end
         end
     end
 end)
-
-print("Infinite zero-delay fog remover active.")
