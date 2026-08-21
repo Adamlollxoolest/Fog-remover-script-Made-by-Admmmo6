@@ -1,0 +1,55 @@
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local function clearFogAndTriggers()
+    -- 1. Clear standard lighting fog properties
+    Lighting.FogEnd = 100000
+    Lighting.FogStart = 0
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14 -- Sets time to a clear midday daylight
+
+    -- Remove any atmosphere objects creating fog/haze effects
+    for _, child in ipairs(Lighting:GetChildren()) do
+        if child:IsA("Atmosphere") or child:IsA("Sky") then
+            child:Destroy()
+        end
+    end
+
+    -- 2. Scan and remove fog trigger parts or zones
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local nameLower = string.lower(obj.Name)
+            if string.find(nameLower, "fog") or string.find(nameLower, "mist") or string.find(nameLower, "weather") then
+                obj:Destroy()
+            end
+        elseif obj:IsA("Folder") or obj:IsA("Model") then
+            local nameLower = string.lower(obj.Name)
+            if string.find(nameLower, "fog") or string.find(nameLower, "weather") then
+                obj:Destroy()
+            end
+        end
+    end
+end
+
+-- Run immediately
+clearFogAndTriggers()
+
+-- Keep cleaning up if new fog parts or atmosphere settings load in dynamically
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("BasePart") or obj:IsA("Atmosphere") then
+        local nameLower = string.lower(obj.Name)
+        if string.find(nameLower, "fog") or string.find(nameLower, "mist") or string.find(nameLower, "weather") or obj:IsA("Atmosphere") then
+            pcall(function()
+                obj:Destroy()
+            end)
+        end
+    end
+end)
+
+Lighting.ChildAdded:Connect(function(child)
+    if child:IsA("Atmosphere") then
+        child:Destroy()
+    end
+end)
+
+print("Fog and fog triggers removed successfully.")
