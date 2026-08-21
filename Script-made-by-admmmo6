@@ -1,55 +1,31 @@
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
-local function clearFogAndTriggers()
-    -- 1. Clear standard lighting fog properties
-    Lighting.FogEnd = 100000
+-- Continuous zero-delay cleanup loop running every frame
+RunService.Heartbeat:Connect(function()
+    -- 1. Force Lighting properties to maximum clarity
+    Lighting.FogEnd = 9e9
     Lighting.FogStart = 0
-    Lighting.Brightness = 2
-    Lighting.ClockTime = 14 -- Sets time to a clear midday daylight
-
-    -- Remove any atmosphere objects creating fog/haze effects
+    
+    -- 2. Instantly wipe out any atmosphere or post-processing visual clutter in Lighting
     for _, child in ipairs(Lighting:GetChildren()) do
-        if child:IsA("Atmosphere") or child:IsA("Sky") then
+        if child:IsA("Atmosphere") or child:IsA("PostEffect") or child:IsA("BlurEffect") or child:IsA("SunRaysEffect") then
             child:Destroy()
         end
     end
-
-    -- 2. Scan and remove fog trigger parts or zones
+    
+    -- 3. Instantly destroy any parts, folders, or models acting as fog triggers/zones
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local nameLower = string.lower(obj.Name)
-            if string.find(nameLower, "fog") or string.find(nameLower, "mist") or string.find(nameLower, "weather") then
-                obj:Destroy()
-            end
-        elseif obj:IsA("Folder") or obj:IsA("Model") then
-            local nameLower = string.lower(obj.Name)
-            if string.find(nameLower, "fog") or string.find(nameLower, "weather") then
+        if obj:IsA("Atmosphere") then
+            obj:Destroy()
+        elseif obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("Folder") then
+            local name = string.lower(obj.Name)
+            if string.find(name, "fog") or string.find(name, "mist") or string.find(name, "weather") or string.find(name, "smoke") or string.find(name, "hazard") then
                 obj:Destroy()
             end
         end
     end
-end
-
--- Run immediately
-clearFogAndTriggers()
-
--- Keep cleaning up if new fog parts or atmosphere settings load in dynamically
-Workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("BasePart") or obj:IsA("Atmosphere") then
-        local nameLower = string.lower(obj.Name)
-        if string.find(nameLower, "fog") or string.find(nameLower, "mist") or string.find(nameLower, "weather") or obj:IsA("Atmosphere") then
-            pcall(function()
-                obj:Destroy()
-            end)
-        end
-    end
 end)
 
-Lighting.ChildAdded:Connect(function(child)
-    if child:IsA("Atmosphere") then
-        child:Destroy()
-    end
-end)
-
-print("Fog and fog triggers removed successfully.")
+print("Infinite zero-delay fog remover active.")
